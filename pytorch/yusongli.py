@@ -2,10 +2,13 @@
 # === Unet++ ===
 # ==============
 from batchgenerators.utilities.file_and_folder_operations import load_pickle, save_pickle
-from thesmuggler import smuggle
-import collections
-pp = smuggle('../../shidaoai_new_project/data/pathparser.py')
+from nnunet.network_architecture.generic_UNetPlusPlus import Generic_UNetPlusPlus
+from nnunet.network_architecture.generic_XNet import Generic_XNet
 import json
+import collections
+from thesmuggler import smuggle
+
+pp = smuggle('../../shidaoai_new_project/data/pathparser.py')
 
 _tasknum = '602'
 _taskname = 'Z2'
@@ -18,6 +21,7 @@ base = f'{_mydata}/{_mymodel}_raw_data_base'
 preprocessing_output_dir = f'{_mydata}/{_mymodel}_preprocessed'
 network_training_output_dir_base = f'{_mydata}/{_mymodel}_cropped_data'
 
+net = Generic_UNetPlusPlus
 
 def splits_final():
     with open(f'{_myroot}/n_to_s.json', 'r') as f:
@@ -25,20 +29,16 @@ def splits_final():
     pkl = f'{preprocessing_output_dir}/Task{_tasknum}_{_taskname}/splits_final.pkl'
     obj = load_pickle(pkl)
     obj = [
-            {
-                'train': [f'Z2_{item}' for item in list(n_to_s['training'])],
-                'val': [f'Z2_{item}' for item in list(n_to_s['validation'])]
-            }
+        {
+            'train': [f'Z2_{item}' for item in list(n_to_s['training'])],
+            'val': [f'Z2_{item}' for item in list(n_to_s['validation'])],
+        }
     ]
     save_pickle(obj, pkl)
 
 
 def fix_bug():
-    myd = {
-        'training': [1, 1333], # [a,b)
-        'validation': [1333, 1665],
-        'test': [1, 265]
-    }
+    myd = {'training': [1, 1333], 'validation': [1333, 1665], 'test': [1, 265]}  # [a,b)
     n_to_s_str = f'{_myroot}/n_to_s_.json_'
     n_to_s_str_save = f'{_myroot}/n_to_s.json'
 

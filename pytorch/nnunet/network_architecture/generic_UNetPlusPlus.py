@@ -21,6 +21,7 @@ import numpy as np
 from nnunet.network_architecture.initialization import InitWeights_He
 from nnunet.network_architecture.neural_network import SegmentationNetwork
 import torch.nn.functional
+import ipdb
 
 
 class ConvDropoutNormNonlin(nn.Module):
@@ -336,7 +337,7 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
         self.loc1 = []
         self.loc2 = []
         self.loc3 = []
-        # self.loc4 = []
+        self.loc4 = []
         self.td = []
         self.up0 = []
         self.up1 = []
@@ -470,9 +471,10 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
         self.seg_outputs.append(
             conv_op(self.loc3[-1][-1].output_channels, num_classes, 1, 1, 0, 1, 1, seg_output_use_bias)
         )
-        # self.seg_outputs.append(
-        #     conv_op(self.loc4[-1][-1].output_channels, num_classes, 1, 1, 0, 1, 1, seg_output_use_bias)
-        # )
+        ipdb.set_trace()  # ! debug yusongli
+        self.seg_outputs.append(
+            conv_op(self.loc4[-1][-1].output_channels, num_classes, 1, 1, 0, 1, 1, seg_output_use_bias)
+        )
 
         self.upscale_logits_ops = []
         cum_upsample = np.cumprod(np.vstack(pool_op_kernel_sizes), axis=0)[::-1]
@@ -493,7 +495,7 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
         self.loc1 = nn.ModuleList(self.loc1)
         self.loc2 = nn.ModuleList(self.loc2)
         self.loc3 = nn.ModuleList(self.loc3)
-        # self.loc4 = nn.ModuleList(self.loc4)
+        self.loc4 = nn.ModuleList(self.loc4)
         self.conv_blocks_context = nn.ModuleList(self.conv_blocks_context)
         self.td = nn.ModuleList(self.td)
         self.up0 = nn.ModuleList(self.up0)
@@ -581,16 +583,12 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
         i = 0
         # seg_outputs = []
         unet_final_features = None
-        if debug:
-            import ipdb
 
-            ipdb.set_trace()  # ! debug yusongli
+        # ipdb.set_trace()  # ! debug yusongli
         for u in range(z, num_pool):
-            if debug:
-                # ! z == 4, num_pool == 4, bug here!!!!!!!!!!!!
-                import ipdb
-
-                ipdb.set_trace()  # ! debug yusongli
+            # if debug:
+            #     # ! z == 4, num_pool == 4, bug here!!!!!!!!!!!!
+            #     ipdb.set_trace()  # ! debug yusongli
             nfeatures_from_down = final_num_features
             nfeatures_from_skip = self.conv_blocks_context[
                 -(2 + u)
@@ -658,7 +656,7 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
         try:
             return conv_blocks_localization, tu, unet_final_features
         except Exception:
-            import ipdb; ipdb.set_trace()  # ! debug yusongli
+            ipdb.set_trace()  # ! debug yusongli
 
     @staticmethod
     def compute_approx_vram_consumption(

@@ -1,5 +1,4 @@
 #!/bin/bash
-
 CUDA_DEVICE_ORDER=PCI_BUS_ID \
 CUDA_VISIBLE_DEVICES=1 \
 nnUNet_train \

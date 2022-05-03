@@ -1,6 +1,6 @@
 # UNet++: A fork version without bugs.
 
-> Just enjoy it :-)
+> Just enjoy it. :-)
 
 1. Fix dependencies error:
 

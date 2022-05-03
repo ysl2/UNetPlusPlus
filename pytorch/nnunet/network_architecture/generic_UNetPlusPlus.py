@@ -21,7 +21,9 @@ import numpy as np
 from nnunet.network_architecture.initialization import InitWeights_He
 from nnunet.network_architecture.neural_network import SegmentationNetwork
 import torch.nn.functional
-import ipdb
+from thesmuggler import smuggle
+
+yusongli = smuggle('../../yusongli.py')
 
 
 class ConvDropoutNormNonlin(nn.Module):
@@ -146,7 +148,7 @@ class StackedConvLayers(nn.Module):
         else:
             self.conv_kwargs_first_conv = conv_kwargs
 
-        super(StackedConvLayers, self).__init__()
+        super().__init__()
         self.blocks = nn.Sequential(
             *(
                 [
@@ -231,7 +233,7 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
     MAX_FILTERS_2D = 480
 
     use_this_for_batch_size_computation_2D = 19739648
-    use_this_for_batch_size_computation_3D = 520000000 * 2  # 505789440
+    use_this_for_batch_size_computation_3D = yusongli.use_this_for_batch_size_computation_3D
 
     def __init__(
         self,
@@ -337,14 +339,13 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
         self.loc1 = []
         self.loc2 = []
         self.loc3 = []
-        self.loc4 = []
+        # self.loc4 = []
         self.td = []
         self.up0 = []
         self.up1 = []
         self.up2 = []
         self.up3 = []
-        self.up4 = []
-        # self.tu = []
+        # self.up4 = []
         self.seg_outputs = []
 
         output_features = base_num_features
@@ -455,9 +456,9 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
             3, num_pool, encoder_features2, num_conv_per_stage, basic_block, transpconv
         )
         # ! debug yusongli
-        self.loc4, self.up4, encoder_features4 = self.create_nest(
-            4, num_pool, encoder_features3, num_conv_per_stage, basic_block, transpconv
-        )
+        # self.loc4, self.up4, encoder_features4 = self.create_nest(
+        #     4, num_pool, encoder_features3, num_conv_per_stage, basic_block, transpconv
+        # )
 
         self.seg_outputs.append(
             conv_op(self.loc0[-1][-1].output_channels, num_classes, 1, 1, 0, 1, 1, seg_output_use_bias)
@@ -471,10 +472,11 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
         self.seg_outputs.append(
             conv_op(self.loc3[-1][-1].output_channels, num_classes, 1, 1, 0, 1, 1, seg_output_use_bias)
         )
-        ipdb.set_trace()  # ! debug yusongli
-        self.seg_outputs.append(
-            conv_op(self.loc4[-1][-1].output_channels, num_classes, 1, 1, 0, 1, 1, seg_output_use_bias)
-        )
+        # ! <<< open debug yusongli
+        # self.seg_outputs.append(
+        #     conv_op(self.loc4[-1][-1].output_channels, num_classes, 1, 1, 0, 1, 1, seg_output_use_bias)
+        # )
+        # ! >>> clos debug
 
         self.upscale_logits_ops = []
         cum_upsample = np.cumprod(np.vstack(pool_op_kernel_sizes), axis=0)[::-1]
@@ -495,14 +497,16 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
         self.loc1 = nn.ModuleList(self.loc1)
         self.loc2 = nn.ModuleList(self.loc2)
         self.loc3 = nn.ModuleList(self.loc3)
-        self.loc4 = nn.ModuleList(self.loc4)
+        # ! <<< open debug yusongli
+        # self.loc4 = nn.ModuleList(self.loc4)
+        # ! >>> clos debug
         self.conv_blocks_context = nn.ModuleList(self.conv_blocks_context)
         self.td = nn.ModuleList(self.td)
         self.up0 = nn.ModuleList(self.up0)
         self.up1 = nn.ModuleList(self.up1)
         self.up2 = nn.ModuleList(self.up2)
         self.up3 = nn.ModuleList(self.up3)
-        self.up4 = nn.ModuleList(self.up4)
+        # self.up4 = nn.ModuleList(self.up4)
         self.seg_outputs = nn.ModuleList(self.seg_outputs)
         if self.upscale_logits:
             self.upscale_logits_ops = nn.ModuleList(
@@ -514,65 +518,61 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
             # self.apply(print_module_training_status)
 
     def forward(self, x):
+        # ? x.shape = (30, 1, 24, 64, 80)
         # skips = []
         seg_outputs = []
+
+        # ? x0_0.shape = (30, 32, 24, 64, 80)
         x0_0 = self.conv_blocks_context[0](x)
+        # ? x1_0.shape = (30, 64, 24, 32, 40)
         x1_0 = self.conv_blocks_context[1](x0_0)
-        # ! <<< open debug yusongli
-        x0_1 = self.loc4[0](torch.cat([x0_0, self.up4[0](x1_0)], 1))
+        # ? x0_1.shape = (30, 32, 24, 64, 80)
+        x0_1 = self.loc3[0](torch.cat([x0_0, self.up3[0](x1_0)], 1))
         seg_outputs.append(self.final_nonlin(self.seg_outputs[-1](x0_1)))
-        # seg_outputs.append(self.final_nonlin(self.seg_outputs[-1](x1_0)))
-        # ! >>> clos debug
 
+        # ? x2_0.shape = (30, 128, 24, 16, 20)
         x2_0 = self.conv_blocks_context[2](x1_0)
-        x1_1 = self.loc3[0](torch.cat([x1_0, self.up3[0](x2_0)], 1))
-        # ! <<< open debug yusongli
-        x0_2 = self.loc3[1](torch.cat([x0_0, x0_1, self.up3[1](x1_1)], 1))
+        # ? x1_1.shape = (30, 64, 24, 32, 40)
+        x1_1 = self.loc2[0](torch.cat([x1_0, self.up2[0](x2_0)], 1))
+        # ? x0_2.shape = (30, 32, 24, 64, 80)
+        x0_2 = self.loc2[1](torch.cat([x0_0, x0_1, self.up2[1](x1_1)], 1))
+        # ? temp.shape = (30, 2, 24, 64, 80)
         seg_outputs.append(self.final_nonlin(self.seg_outputs[-2](x0_2)))
-        # seg_outputs.append(self.final_nonlin(self.seg_outputs[-2](x1_1)))
-        # ! >>> clos debug
 
+        # ? x3_0.shape = (30, 256, 12, 8, 10)
         x3_0 = self.conv_blocks_context[3](x2_0)
-        x2_1 = self.loc2[0](torch.cat([x2_0, self.up2[0](x3_0)], 1))
-        x1_2 = self.loc2[1](torch.cat([x1_0, x1_1, self.up2[1](x2_1)], 1))
-        # ! <<< open debug yusongli
-        x0_3 = self.loc2[2](torch.cat([x0_0, x0_1, x0_2, self.up2[2](x1_2)], 1))
+        # ? x2_1.shape = (30, 128, 24, 16, 20)
+        x2_1 = self.loc1[0](torch.cat([x2_0, self.up1[0](x3_0)], 1))
+        # ? x1_2.shape = (30, 64, 24, 32, 40)
+        x1_2 = self.loc1[1](torch.cat([x1_0, x1_1, self.up1[1](x2_1)], 1))
+        # ? x0_3.shape = (30, 32, 24, 64, 80)
+        x0_3 = self.loc1[2](torch.cat([x0_0, x0_1, x0_2, self.up1[2](x1_2)], 1))
         seg_outputs.append(self.final_nonlin(self.seg_outputs[-3](x0_3)))
-        # seg_outputs.append(self.final_nonlin(self.seg_outputs[-3](x1_2)))
-        # ! >>> clos debug
 
+        # ? x4_0.shape = (30, 320, 6, 4, 5)
         x4_0 = self.conv_blocks_context[4](x3_0)
-        x3_1 = self.loc1[0](torch.cat([x3_0, self.up1[0](x4_0)], 1))
-        x2_2 = self.loc1[1](torch.cat([x2_0, x2_1, self.up1[1](x3_1)], 1))
-        x1_3 = self.loc1[2](torch.cat([x1_0, x1_1, x1_2, self.up1[2](x2_2)], 1))
-        # ! <<< open debug yusongli
-        x0_4 = self.loc1[3](torch.cat([x0_0, x0_1, x0_2, x0_3, self.up1[3](x1_3)], 1))
+        # ? x3_1.shape = (30, 256, Z, X, Y)
+        x3_1 = self.loc0[0](torch.cat([x3_0, self.up0[0](x4_0)], 1))
+        # ? x2_2.shape = (30, 128, 24, 16, 20)
+        x2_2 = self.loc0[1](torch.cat([x2_0, x2_1, self.up0[1](x3_1)], 1))
+        # ? x1_3.shape = (30, 64, 24, 32, 40)
+        x1_3 = self.loc0[2](torch.cat([x1_0, x1_1, x1_2, self.up0[2](x2_2)], 1))
+        # ? x0_4.shape = (30, 32, 24, 64, 80)
+        x0_4 = self.loc0[3](torch.cat([x0_0, x0_1, x0_2, x0_3, self.up0[3](x1_3)], 1))
         seg_outputs.append(self.final_nonlin(self.seg_outputs[-4](x0_4)))
-        # seg_outputs.append(self.final_nonlin(self.seg_outputs[-4](x1_3)))
-        # ! >>> clos debug
-
-        x5_0 = self.conv_blocks_context[5](x4_0)
-        x4_1 = self.loc0[0](torch.cat([x4_0, self.up0[0](x5_0)], 1))
-        x3_2 = self.loc0[1](torch.cat([x3_0, x3_1, self.up0[1](x4_1)], 1))
-        x2_3 = self.loc0[2](torch.cat([x2_0, x2_1, x2_2, self.up0[2](x3_2)], 1))
-        x1_4 = self.loc0[3](torch.cat([x1_0, x1_1, x1_2, x1_3, self.up0[3](x2_3)], 1))
-        # ! <<< open debug yusongli
-        x0_5 = self.loc0[4](torch.cat([x0_0, x0_1, x0_2, x0_3, x0_4, self.up0[4](x1_4)], 1))
-        seg_outputs.append(self.final_nonlin(self.seg_outputs[-5](x0_5)))
-        # seg_outputs.append(self.final_nonlin(self.seg_outputs[-5](x1_4)))
-        # ! >>> clos debug
 
         if self._deep_supervision and self.do_ds:
-            return tuple(
+            return_value = tuple(
                 [seg_outputs[-1]] + [i(j) for i, j in zip(list(self.upscale_logits_ops)[::-1], seg_outputs[:-1][::-1])]
             )
         else:
-            return seg_outputs[-1]
+            return_value = seg_outputs[-1]
+        return return_value
 
     # now lets build the localization pathway BACK_UP
     def create_nest(self, z, num_pool, final_num_features, num_conv_per_stage, basic_block, transpconv):
         # ! debug yusongli
-        debug = z == 4
+        # debug = z == 4
         # z = 4
         # num_pool = 4
         # final_num_features = 32
@@ -653,10 +653,7 @@ class Generic_UNetPlusPlus(SegmentationNetwork):
                 )
             )
 
-        try:
-            return conv_blocks_localization, tu, unet_final_features
-        except Exception:
-            ipdb.set_trace()  # ! debug yusongli
+        return conv_blocks_localization, tu, unet_final_features
 
     @staticmethod
     def compute_approx_vram_consumption(

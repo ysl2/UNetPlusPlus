@@ -21,7 +21,6 @@ import torch
 from nnunet.training.loss_functions.deep_supervision import MultipleOutputLoss2
 from nnunet.utilities.to_torch import maybe_to_torch, to_cuda
 from nnunet.training.data_augmentation.default_data_augmentation import get_moreDA_augmentation
-import yusongli
 from nnunet.network_architecture.initialization import InitWeights_He
 from nnunet.network_architecture.neural_network import SegmentationNetwork
 from nnunet.training.data_augmentation.default_data_augmentation import (
@@ -37,6 +36,9 @@ from torch import nn
 from torch.cuda.amp import autocast
 from nnunet.training.learning_rate.poly_lr import poly_lr
 from batchgenerators.utilities.file_and_folder_operations import *
+from thesmuggler import smuggle
+
+yusongli = smuggle('../../../yusongli.py')
 
 
 class nnUNetPlusPlusTrainerV2(nnUNetTrainer):
@@ -59,6 +61,7 @@ class nnUNetPlusPlusTrainerV2(nnUNetTrainer):
         super().__init__(
             plans_file, fold, output_folder, dataset_directory, batch_dice, stage, unpack_data, deterministic, fp16
         )
+        self.num_batches_per_epoch = yusongli.num_batches_per_epoch
         self.max_num_epochs = 1000
         self.initial_lr = 1e-2
         self.deep_supervision_scales = None
@@ -169,7 +172,7 @@ class nnUNetPlusPlusTrainerV2(nnUNetTrainer):
         net_nonlin = nn.LeakyReLU
         net_nonlin_kwargs = {'negative_slope': 1e-2, 'inplace': True}
         # self.network = Generic_XNet(
-        self.network = yusongli.net(
+        self.network = yusongli.net()(
             self.num_input_channels,
             self.base_num_features,
             self.num_classes,

@@ -20,7 +20,9 @@ setup(name='nnunet',
             "sklearn",
             "SimpleITK",
             "pandas",
-            "nibabel", 'tifffile'
+            "nibabel",
+            'tifffile',
+            "thesmuggler",
       ],
       entry_points={
           'console_scripts': [
